@@ -1,124 +1,117 @@
-# Configuration de référence pour NewAIMultiModal
-experiment:
-  name: clevr_concepts_v1
-  seed: 42
-  output_dir: outputs/clevr_concepts_v1
-
-# --- Données ---
-data:
-  sources:
-    real:
-      - type: vision_text
-        path: data/clevr_real
-    synthetic:
-      - type: simulator
-        env: clevr_like
-        num_scenes: 200000
-  augmentations:
-    - name: color_swap
-    - name: object_replace
-    - name: text_counterfactual
-  batch_mix:
-    real_ratio: 0.4
-    synthetic_ratio: 0.6
-  trajectory_buffer:
-    size: 200000
-    prioritize_interventions: true
-
-# --- Modèles ---
-model:
-  perception:
-    text_transformer:
-      layers: 8
-      hidden_dim: 768
-      heads: 12
-    vision_encoder:
-      type: vit
-      patch: 16
-      layers: 12
-      hidden_dim: 768
-    state_mlp:
-      hidden_dims: [256, 256]
-  slots:
-    num_slots: 16
-    slot_dim: 256
-    existence_bias: -1.0
-    vae_beta: 0.5
-    discrete_code:
-      enabled: true
-      dim: 32
-      temperature: 0.5
-  graph:
-    type: gat
-    layers: 3
-    hidden_dim: 256
-  dynamics:
-    message_passing_layers: 2
-    action_dim: 32
-    intervention_heads: true
-  reasoner:
-    transformer_layers: 6
-    heads: 8
-    operator_tokens: [SELECT, RELATE, APPLY_RULE]
-  decoder:
-    type: transformer
-    layers: 12
-    hidden_dim: 1024
-    cross_attention: slots_graph
-
-# --- Pertes ---
-loss:
-  lambda_rec: 1.0
-  lambda_slot: 0.2
-  lambda_contr: 0.5
-  lambda_dyn: 1.0
-  lambda_interv: 2.0
-  lambda_text: 1.0
-  lambda_kl: 0.1
-  lambda_symbolic: 0.0
-
-# --- Entraînement ---
-training:
-  optimizer: adamw
-  lr_pretrain: 1.0e-4
-  lr_finetune: 3.0e-5
-  weight_decay: 0.01
-  warmup_steps: 2000
-  batch_size: 128
-  grad_clip: 1.0
-  total_steps:
-    pretrain: 1000000
-    dynamics: 200000
-    finetune: 500000
-  evaluation_interval: 5000
-
-# --- Phases ---
-phases:
-  phase0_pretrain:
-    objectives: [rec, contr, slot, kl]
-  phase1_dynamics:
-    objectives: [dyn, interv]
-  phase2_invariance:
-    objectives: [contr, interv]
-    invariance_margin: 0.05
-  phase3_grounding:
-    objectives: [supervised]
-    supervised_labels: [color, material, relation]
-  phase4_joint:
-    objectives: [rec, dyn, interv, text]
-
-# --- Évaluation ---
-eval:
-  metrics:
-    - intervention_consistency
-    - slot_interpretability
-    - grounding_accuracy
-    - causal_precision_recall
-    - compositional_generalization
-    - planning_success
-    - bleu
-  probes:
-    linear_probe_hidden_dim: 128
-  planning:
-    planner: a_star_over_graph
-    horizon: 5
+{
+  "experiment": {
+    "name": "clevr_concepts_v1",
+    "seed": 42,
+    "output_dir": "outputs/clevr_concepts_v1"
+  },
+  "data": {
+    "sources": {
+      "real": [
+        {
+          "type": "vision_text",
+          "path": "data/clevr_real/data.jsonl"
+        }
+      ],
+      "synthetic": [
+        {
+          "type": "simulator",
+          "env": "clevr_like",
+          "num_scenes": 200000
+        }
+      ]
+    },
+    "augmentations": [
+      {"name": "color_swap"},
+      {"name": "object_replace"},
+      {"name": "text_counterfactual"}
+    ],
+    "batch_mix": {
+      "real_ratio": 0.4,
+      "synthetic_ratio": 0.6
+    },
+    "trajectory_buffer": {
+      "size": 200000,
+      "prioritize_interventions": true
+    }
+  },
+  "model": {
+    "perception": {
+      "text_transformer": {"layers": 8, "hidden_dim": 768, "heads": 12},
+      "vision_encoder": {"type": "vit", "patch": 16, "layers": 12, "hidden_dim": 768},
+      "state_mlp": {"hidden_dims": [256, 256]}
+    },
+    "slots": {
+      "num_slots": 16,
+      "slot_dim": 256,
+      "existence_bias": -1.0,
+      "vae_beta": 0.5,
+      "discrete_code": {
+        "enabled": true,
+        "dim": 32,
+        "temperature": 0.5
+      }
+    },
+    "graph": {"type": "gat", "layers": 3, "hidden_dim": 256},
+    "dynamics": {
+      "message_passing_layers": 2,
+      "action_dim": 32,
+      "intervention_heads": true
+    },
+    "reasoner": {
+      "transformer_layers": 6,
+      "heads": 8,
+      "operator_tokens": ["SELECT", "RELATE", "APPLY_RULE"]
+    },
+    "decoder": {
+      "type": "transformer",
+      "layers": 12,
+      "hidden_dim": 1024,
+      "cross_attention": "slots_graph"
+    }
+  },
+  "loss": {
+    "lambda_rec": 1.0,
+    "lambda_slot": 0.2,
+    "lambda_contr": 0.5,
+    "lambda_dyn": 1.0,
+    "lambda_interv": 2.0,
+    "lambda_text": 1.0,
+    "lambda_kl": 0.1,
+    "lambda_symbolic": 0.0
+  },
+  "training": {
+    "optimizer": "adamw",
+    "lr_pretrain": 1.0e-4,
+    "lr_finetune": 3.0e-5,
+    "weight_decay": 0.01,
+    "warmup_steps": 2000,
+    "batch_size": 8,
+    "grad_clip": 1.0,
+    "total_steps": {
+      "pretrain": 1000000,
+      "dynamics": 200000,
+      "finetune": 500000
+    },
+    "evaluation_interval": 5
+  },
+  "phases": {
+    "phase0_pretrain": {"objectives": ["rec", "contr", "slot", "kl"]},
+    "phase1_dynamics": {"objectives": ["dyn", "interv"]},
+    "phase2_invariance": {"objectives": ["contr", "interv"], "invariance_margin": 0.05},
+    "phase3_grounding": {"objectives": ["supervised"], "supervised_labels": ["color", "material", "relation"]},
+    "phase4_joint": {"objectives": ["rec", "dyn", "interv", "text"]}
+  },
+  "eval": {
+    "metrics": [
+      "intervention_consistency",
+      "slot_interpretability",
+      "grounding_accuracy",
+      "causal_precision_recall",
+      "compositional_generalization",
+      "planning_success",
+      "bleu"
+    ],
+    "probes": {"linear_probe_hidden_dim": 128},
+    "planning": {"planner": "a_star_over_graph", "horizon": 5}
+  }
+}

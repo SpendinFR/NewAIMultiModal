@@ -155,3 +155,24 @@ La perte totale est :
 6. Évaluer IC, Slot Interpretability, Planning Success.
 
 Le dossier `configs/` fournit un exemple de configuration pour lancer ce pipeline.
+
+## 11. Implémentation de référence
+
+Le répertoire `src/newaimultimodal/` contient une implémentation légère mais fonctionnelle des concepts ci-dessus :
+
+- `models/perception.py` encode les modalités (texte, vision symbolique, état) via des projections déterministes.
+- `models/slots.py` applique un Slot Attention simplifié et expose les vecteurs `slots` + les scores `existence`.
+- `models/graph.py`, `models/dynamics.py`, `models/reasoner.py` et `models/decoder.py` matérialisent respectivement le graphe causal, les transitions, le raisonneur neuro-symbolique et le décodeur textuel.
+- `data/sources.py` et `data/buffer.py` fournissent un générateur CLEVR-like ainsi qu'un buffer de trajectoires pour les phases dynamiques.
+- `training/trainer.py` orchestre les phases décrites ci-dessus et calcule des métriques légères (`intervention_consistency`, `slot_interpretability`, `grounding_accuracy`).
+- Pour rester exécutable hors-ligne, `configs/base.yaml` est écrit en JSON (valide YAML) et le chargeur accepte automatiquement YAML ou JSON.
+
+Pour lancer une expérience rapide (quelques itérations de démonstration) :
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+python train.py --config configs/base.yaml --phase phase0_pretrain --max_steps 3
+```
+
+Les journaux affichent les pertes et métriques toutes les `evaluation_interval` itérations. Les sorties et artefacts sont stockés dans `outputs/<nom_experience>/`.
